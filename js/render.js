@@ -1,6 +1,4 @@
 import { translate } from "./i18n.js";
-import { edgeKey } from "./graph.js";
-
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const NODE_RADIUS = 17;
 
@@ -46,14 +44,14 @@ export function renderMap(container, building, state, route, onNodeClick, onEdge
   const svg = createSvgElement("svg", {
     viewBox: getViewBox(building.nodes),
     role: "group",
-    "aria-label": translate("accessibilityMap", { name: building.name }),
+    "aria-label": translate("accessibilityMap", { name: building.building }),
     preserveAspectRatio: "xMidYMid meet",
   });
   svg.classList.add("map-svg");
   const blockedEdges = state.blockedEdges;
   const routeEdges = new Set(
-    route.status === "ok"
-      ? route.path.slice(1).map((id, index) => edgeKey(route.path[index], id))
+    route?.status === "ok"
+      ? route.path.slice(1).map((id, index) => JSON.stringify([route.path[index], id].sort()))
       : [],
   );
 
@@ -61,9 +59,9 @@ export function renderMap(container, building, state, route, onNodeClick, onEdge
   for (const edge of building.edges) {
     const from = building.nodes.find((node) => node.id === edge.from);
     const to = building.nodes.find((node) => node.id === edge.to);
-    const key = edgeKey(edge.from, edge.to);
-    const isBlocked = blockedEdges.has(key);
-    const isRouteEdge = routeEdges.has(key) && !isBlocked;
+    const pairKey = JSON.stringify([edge.from, edge.to].sort());
+    const isBlocked = blockedEdges.has(edge.id);
+    const isRouteEdge = routeEdges.has(pairKey) && !isBlocked;
     const edgeGroup = createSvgElement("g", {
       role: "img",
       class: `edge-group${isBlocked ? " is-blocked" : ""}${isRouteEdge ? " is-route" : ""}`,
@@ -82,11 +80,11 @@ export function renderMap(container, building, state, route, onNodeClick, onEdge
         to: nodeLabel(to),
         cost: edge.cost,
       })}, ${isBlocked ? translate("hazardBlocked") : translate("hazardOpen")}`);
-      edgeGroup.addEventListener("click", () => onEdgeClick(edge.from, edge.to));
+      edgeGroup.addEventListener("click", () => onEdgeClick(edge.id));
       edgeGroup.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          onEdgeClick(edge.from, edge.to);
+          onEdgeClick(edge.id);
         }
       });
     }
@@ -262,7 +260,7 @@ function addDetailRow(parent, label, value) {
 
 export function renderBuildingDetails(container, building) {
   container.replaceChildren();
-  addDetailRow(container, translate("buildingName"), building.name);
+  addDetailRow(container, translate("buildingName"), building.building);
   addDetailRow(container, translate("nodeCount"), `${building.nodes.length} ${translate("nodesUnit")}`);
   addDetailRow(container, translate("edgeCount"), `${building.edges.length} ${translate("edgesUnit")}`);
 }
@@ -273,6 +271,7 @@ export function renderInitialState(container, building, state = null) {
     ? {
       start: state.start,
       blocked_nodes: [...state.blockedNodes],
+      blocked_edges: [...state.blockedEdges],
       closed_exits: [...state.closedExits],
     }
     : building.initial_state;
@@ -284,7 +283,10 @@ export function renderInitialState(container, building, state = null) {
   const list = document.createElement("ul");
   list.className = "state-list";
   const rows = [
-    [translate("startLocation"), nodeLabel(nodeById.get(initialState.start))],
+    [
+      translate("startLocation"),
+      initialState.start ? nodeLabel(nodeById.get(initialState.start)) : translate("none"),
+    ],
     [translate("blockedLocations"), formatIds(initialState.blocked_nodes)],
     [translate("closedExits"), formatIds(initialState.closed_exits)],
   ];

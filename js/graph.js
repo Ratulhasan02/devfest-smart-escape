@@ -1,7 +1,3 @@
-export function edgeKey(firstId, secondId) {
-  return JSON.stringify([firstId, secondId].sort());
-}
-
 function comparePaths(firstPath, secondPath) {
   const sharedLength = Math.min(firstPath.length, secondPath.length);
   for (let index = 0; index < sharedLength; index += 1) {
@@ -22,7 +18,7 @@ function buildAdjacency(building, blockedNodes, blockedEdges) {
   for (const edge of building.edges) {
     if (blockedNodes.has(edge.from)
       || blockedNodes.has(edge.to)
-      || blockedEdges.has(edgeKey(edge.from, edge.to))) {
+      || blockedEdges.has(edge.id)) {
       continue;
     }
 
@@ -39,6 +35,10 @@ function buildAdjacency(building, blockedNodes, blockedEdges) {
 }
 
 export function findRoute(building, start, hazards = {}) {
+  if (start === null || start === undefined) {
+    return { status: "no_route" };
+  }
+
   const nodesById = new Map(building.nodes.map((node) => [node.id, node]));
   const blockedNodes = new Set(hazards.blockedNodes ?? []);
   const blockedEdges = new Set(hazards.blockedEdges ?? []);

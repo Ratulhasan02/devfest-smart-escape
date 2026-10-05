@@ -20,7 +20,7 @@ export function validateBuilding(building) {
     return [{ key: "errorBuildingName", params: {} }];
   }
 
-  if (typeof building.name !== "string" || building.name.trim().length === 0) {
+  if (typeof building.building !== "string" || building.building.trim().length === 0) {
     addError(errors, "errorBuildingName");
   }
 
@@ -52,6 +52,9 @@ export function validateBuilding(building) {
     }
 
     const id = displayId(node.id);
+    if (typeof node.label !== "string" || node.label.trim().length === 0) {
+      addError(errors, "errorNodeLabel", { id });
+    }
     if (!NODE_TYPES.has(node.type)) {
       addError(errors, "errorNodeType", { id });
     } else if (BLOCKABLE_TYPES.has(node.type)) {
@@ -82,10 +85,19 @@ export function validateBuilding(building) {
   }
 
   const seenPairs = new Set();
+  const edgeIds = new Set();
   for (const edge of edges) {
     if (!isRecord(edge)) {
       addError(errors, "errorEdgeObject");
       continue;
+    }
+
+    if (typeof edge.id !== "string" || edge.id.trim().length === 0) {
+      addError(errors, "errorEdgeId");
+    } else if (edgeIds.has(edge.id)) {
+      addError(errors, "errorDuplicateEdgeId", { id: edge.id });
+    } else {
+      edgeIds.add(edge.id);
     }
 
     const from = displayId(edge.from);
@@ -113,24 +125,17 @@ export function validateBuilding(building) {
     }
   }
 
-  validateInitialState(building.initial_state, nodesById, errors);
+  validateInitialState(building.initial_state, nodesById, edgeIds, errors);
   return errors;
 }
 
-function validateInitialState(initialState, nodesById, errors) {
+function validateInitialState(initialState, nodesById, edgeIds, errors) {
   if (!isRecord(initialState)
-    || !Object.hasOwn(initialState, "start")
     || !Object.hasOwn(initialState, "blocked_nodes")
+    || !Object.hasOwn(initialState, "blocked_edges")
     || !Object.hasOwn(initialState, "closed_exits")) {
     addError(errors, "errorInitialState");
     return;
-  }
-
-  const startNode = nodesById.get(initialState.start);
-  if (!startNode) {
-    addError(errors, "errorStartId", { id: displayId(initialState.start) });
-  } else if (startNode.type !== "room") {
-    addError(errors, "errorStartCategory", { id: initialState.start });
   }
 
   validateStateList(
@@ -138,21 +143,43 @@ function validateInitialState(initialState, nodesById, errors) {
     "errorBlockedArray",
     "errorBlockedId",
     "errorBlockedCategory",
-    "blockedListName",
+    "blocked_nodes",
     BLOCKABLE_TYPES,
     nodesById,
     errors,
   );
+  validateEdgeStateList(initialState.blocked_edges, edgeIds, errors);
   validateStateList(
     initialState.closed_exits,
     "errorClosedArray",
     "errorClosedId",
     "errorClosedCategory",
-    "closedListName",
+    "closed_exits",
     new Set(["exit"]),
     nodesById,
     errors,
   );
+}
+
+function validateEdgeStateList(values, edgeIds, errors) {
+  if (!Array.isArray(values)) {
+    addError(errors, "errorBlockedEdgesArray");
+    return;
+  }
+
+  const seen = new Set();
+  for (const id of values) {
+    if (typeof id !== "string" || !edgeIds.has(id)) {
+      addError(errors, "errorBlockedEdgeId", { id: displayId(id) });
+    }
+    if (typeof id === "string") {
+      if (seen.has(id)) {
+        addError(errors, "errorDuplicateInitialId", { id, list: "blocked_edges" });
+      } else {
+        seen.add(id);
+      }
+    }
+  }
 }
 
 function validateStateList(values, arrayError, missingError, categoryError, listNameKey, allowedTypes, nodesById, errors) {
@@ -174,7 +201,7 @@ function validateStateList(values, arrayError, missingError, categoryError, list
       if (seen.has(id)) {
         addError(errors, "errorDuplicateInitialId", {
           id,
-          list: listNameKey === "blockedListName" ? "blocked_nodes" : "closed_exits",
+          list: listNameKey,
         });
       } else {
         seen.add(id);

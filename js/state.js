@@ -1,5 +1,3 @@
-import { edgeKey } from "./graph.js";
-
 const START_TYPES = new Set(["room", "junction"]);
 const BLOCKABLE_TYPES = new Set(["room", "junction"]);
 
@@ -12,9 +10,9 @@ export function createBuildingState(building) {
   const state = {
     building: buildingCopy,
     originalInitialState: copy(buildingCopy.initial_state),
-    start: buildingCopy.initial_state.start,
+    start: null,
     blockedNodes: new Set(buildingCopy.initial_state.blocked_nodes),
-    blockedEdges: new Set(),
+    blockedEdges: new Set(buildingCopy.initial_state.blocked_edges),
     closedExits: new Set(buildingCopy.initial_state.closed_exits),
     mode: "start",
   };
@@ -65,12 +63,14 @@ export function toggleNodeHazard(state, nodeId) {
   throw new RangeError(`Unsupported node type: ${node.type}`);
 }
 
-export function toggleEdgeHazard(state, firstId, secondId) {
-  const key = edgeKey(firstId, secondId);
-  if (state.blockedEdges.has(key)) {
-    state.blockedEdges.delete(key);
+export function toggleEdgeHazard(state, edgeId) {
+  if (!state.building.edges.some((edge) => edge.id === edgeId)) {
+    throw new RangeError(`Unknown edge ID: ${edgeId}`);
+  }
+  if (state.blockedEdges.has(edgeId)) {
+    state.blockedEdges.delete(edgeId);
   } else {
-    state.blockedEdges.add(key);
+    state.blockedEdges.add(edgeId);
   }
 }
 
@@ -78,7 +78,7 @@ export function resetBuildingState(state) {
   const previousStart = state.start;
   const restored = copy(state.originalInitialState);
   state.blockedNodes = new Set(restored.blocked_nodes);
-  state.blockedEdges.clear();
+  state.blockedEdges = new Set(restored.blocked_edges);
   state.closedExits = new Set(restored.closed_exits);
 
   const selectedNode = state.building.nodes.find((node) => node.id === previousStart);
@@ -86,5 +86,5 @@ export function resetBuildingState(state) {
     && START_TYPES.has(selectedNode.type)
     && !state.blockedNodes.has(previousStart)
     ? previousStart
-    : restored.start;
+    : null;
 }

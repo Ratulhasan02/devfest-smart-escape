@@ -80,6 +80,7 @@ function clearBuilding() {
 }
 
 function calculateRoute() {
+  if (!activeState.start) return null;
   return findRoute(activeState.building, activeState.start, getHazards(activeState));
 }
 
@@ -93,9 +94,9 @@ function onNodeClick(nodeId) {
   refreshBuilding();
 }
 
-function onEdgeClick(firstId, secondId) {
+function onEdgeClick(edgeId) {
   if (!activeState || activeState.mode !== "hazard") return;
-  toggleEdgeHazard(activeState, firstId, secondId);
+  toggleEdgeHazard(activeState, edgeId);
   refreshBuilding();
 }
 

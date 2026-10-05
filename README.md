@@ -2,117 +2,115 @@
 
 **Name:** Ratul Hasan
 
-**Registration number:** not issued for the mock test
+**Registration number:** N/A (mock test)
 
-**Live HTTPS site:** [https://ratulhasan02.github.io/devfest-smart-escape/](https://ratulhasan02.github.io/devfest-smart-escape/)
-**Repository:** [github.com/Ratulhasan02/devfest](https://github.com/Ratulhasan02/devfest)
+**Live site:** https://ratulhasan02.github.io/devfest-smart-escape/
 
-A bilingual, static evacuation planner built with plain HTML, CSS, and JavaScript ES modules. It validates imported building maps, finds deterministic shortest routes, and lets occupants model blocked rooms, corridors, and exits.
+Smart Escape is a bilingual, browser-based evacuation route simulator built with plain HTML, CSS, and JavaScript ES modules.
 
-## Features
+## Main features done
 
-- Switch between English and Bengali; the choice is saved in local storage.
-- Import a building JSON file or load the included sample.
-- Validate node/edge limits, IDs, categories, coordinates, costs, connections, and initial hazards before drawing a map.
-- View a responsive SVG floor plan with distinct room, junction, and exit shapes.
-- Select an unblocked room or junction as the start and calculate a minimum-cost route to an open exit.
-- Resolve ties deterministically by total cost, exit ID, and the full node-ID path (case-sensitive string order).
-- Toggle node, corridor, and exit hazards in a separate interaction mode. Routes update immediately.
-- Reset hazards to the imported initial state while preserving a still-valid selected start.
-- Use the app with keyboard-operable controls and reduced-motion preferences.
+- Import a building JSON file or load the included sample; invalid files are reported in English or Bengali and are not drawn.
+- Validate the official building schema, node and edge limits, unique IDs, labels and categories, coordinates, positive integer costs, endpoints, undirected duplicate connections, and initial hazard IDs/categories.
+- Draw a responsive SVG floor plan with room, junction, exit, connection-cost, route, and hazard states.
+- Choose any unblocked room or junction as the starting location.
+- Calculate a minimum-cost route to an open exit, with deterministic ties by cost, exit ID, and then the complete node-ID sequence.
+- Toggle hazards on rooms/junctions, corridors by edge ID, and exits; recalculate the route immediately.
+- Reset hazards to the imported initial state while retaining the current start if it is still an unblocked room or junction. Otherwise, no start is selected.
+- Operate map controls with a keyboard, switch languages, and respect reduced-motion preferences.
 
 ## Bonus features
 
-No optional bonus features from the challenge list are implemented. The app does include accessible SVG node and corridor controls, in addition to the required map interactions.
+None of the optional challenge bonuses are implemented.
 
 ## Run locally
 
-The sample loader and ES modules need an HTTP origin. From this folder, start any static web server and open its local URL. For example:
+The sample loader and JavaScript ES modules require an HTTP origin. From this folder, start a static web server and open its local URL. For example:
 
 ```powershell
 npx serve .
 ```
 
-The site is deployed with GitHub Pages from the `main` branch root. After pushing a change, check the repository's Pages deployment action and allow a short time for the live site to update.
+GitHub Pages deploys the `main` branch root.
 
 ## Screenshots
 
-Baseline route from R1:
-
-![R1 to E1 baseline route](./screenshots/baseline-route.png)
-
-Reroute after blocking C2:
-
-![R1 reroute after blocking C2](./screenshots/reroute-blocked-c2.png)
-
-## Sample route checks
-
-The included test building supports the five challenge checks:
-
-1. Start at R1: `R1 → C1 → C2 → E1`, cost 7.
-2. Block C2: `R1 → C1 → C3 → C4 → E2`, cost 11.
-3. Close E1 and E2: no route available.
-4. Start at R2: `R2 → C3 → C4 → E2`, cost 7.
-5. Start at R1, then block R1: starting location blocked.
+- `screenshots/baseline-route.png` — live-site baseline route R1 → C1 → C2 → E1, cost 7.
+- `screenshots/reroute-blocked-c2.png` — live-site route after blocking C2: R1 → C1 → C3 → C4 → E2, cost 11.
 
 ## Building JSON format
 
+The app accepts the challenge schema. A building has a non-empty `building` name, labeled nodes, uniquely identified edges, and an `initial_state` containing the three hazard-ID arrays. The user chooses a start in the app; the JSON does not contain a start field.
+
 ```json
 {
-  "name": "Example Building",
+  "building": "Example Building",
   "nodes": [
-    { "id": "lobby", "label": "Lobby", "type": "room", "x": 120, "y": 180 },
-    { "id": "hall", "label": "Hall", "type": "junction", "x": 300, "y": 180 },
-    { "id": "exit-a", "label": "East Exit", "type": "exit", "x": 500, "y": 180 }
+    { "id": "R1", "label": "Room 1", "type": "room", "x": 120, "y": 180 },
+    { "id": "C1", "label": "Corridor 1", "type": "junction", "x": 300, "y": 180 },
+    { "id": "E1", "label": "East Exit", "type": "exit", "x": 500, "y": 180 }
   ],
   "edges": [
-    { "from": "lobby", "to": "hall", "cost": 2 },
-    { "from": "hall", "to": "exit-a", "cost": 3 }
+    { "id": "e1", "from": "R1", "to": "C1", "cost": 2 },
+    { "id": "e2", "from": "C1", "to": "E1", "cost": 3 }
   ],
   "initial_state": {
-    "start": "lobby",
     "blocked_nodes": [],
+    "blocked_edges": [],
     "closed_exits": []
   }
 }
 ```
 
-- `name` must be a non-empty string.
-- Include 2–60 nodes and 1–150 connections. Node IDs must be unique.
-- Node `type` is `room`, `junction` or `exit`; `x` and `y` are finite numbers. `label` is optional and defaults to the node ID.
-- Every connection has existing `from` and `to` IDs and a positive integer `cost`. Self-connections and duplicate undirected pairs are not allowed.
+- `building` must be a non-empty string.
+- Include 2–60 nodes and 1–150 edges. Node IDs and edge IDs must each be unique, non-empty strings.
+- Every node must have a non-empty `label`, a `type` of `room`, `junction`, or `exit`, and numeric finite `x` and `y` coordinates.
+- Every edge must have existing `from` and `to` node IDs and a positive integer `cost`. Corridors are undirected. Self-loops and repeated undirected pairs are invalid; A–B and B–A count as the same pair.
 - Include at least one room or junction and at least one exit.
-- `initial_state.start` must identify a room. `blocked_nodes` can contain rooms and junctions; `closed_exits` can contain exits. Each list must be an array of existing node IDs.
+- `initial_state.blocked_nodes`, `initial_state.blocked_edges`, and `initial_state.closed_exits` must be arrays. Blocked node IDs must identify rooms or junctions, blocked edge IDs must identify existing edges, and closed exit IDs must identify exits.
+- Choose the route's starting room or junction interactively after loading a valid building.
 
 Validation errors are listed beside the map in the selected language. Invalid data is never drawn.
 
 ## Select a start and test hazards
 
-Use **Select start** and click an unblocked room or junction to recalculate its shortest route to an open exit. **Toggle hazard** switches clicks to toggling blocked rooms/junctions, blocked corridors, and closed exits. The Reset button restores the imported file's original hazards and keeps the selected starting node when it remains valid.
+Choose **Select start** and click an unblocked room or junction to calculate its shortest route to an open exit. Choose **Toggle hazard** to block/unblock a room or junction, block/unblock a corridor, or close/reopen an exit. Corridor hazard state is tracked by the edge's ID, even though its connection is undirected. **Reset** restores the imported initial hazards and retains the current start only when it remains valid and unblocked.
 
-The included sample uses the R1/R2 and C1–C4 test graph. From R1 the route to E1 costs 7; blocking C2 reroutes to E2 for 11. From R2 the route to E2 costs 7.
+The sample supports the five challenge checks:
 
-## Known issues and scope
+1. Select R1: R1 → C1 → C2 → E1, cost 7.
+2. Select R1 and block C2: R1 → C1 → C3 → C4 → E2, cost 11.
+3. Select R1 and close E1 and E2: no route available.
+4. Select R2: R2 → C3 → C4 → E2, cost 7.
+5. Select R1 and block R1: starting location blocked.
+
+## Known issues
 
 - Route costs are abstract edge weights; the app does not estimate travel time, accessibility, or real-world building safety.
-- Uploaded maps and hazard changes are kept only in the current page session. Only the language preference is saved in local storage.
-- The map is a coordinate-based floor-plan diagram, not a scale-accurate architectural drawing.
-- The challenge sample is synthetic and should not be used for emergency response.
+- Imported data and hazard changes are kept in the current page session. Only the language preference is saved in local storage.
+- The coordinate-based SVG is a diagram, not a scale-accurate architectural drawing.
+- The bundled sample is synthetic and must not be used for emergency response.
 
-## AI tools and useful prompt
+## AI tools used
 
-**AI tools used:** GitHub Copilot in VS Code for implementation assistance, code review, and test-case generation. The routing and validation behavior was checked against the challenge's concrete examples.
+GitHub Copilot in VS Code was used for implementation assistance, code review, and generating test cases. The schema and routing requirements were checked against the challenge specification and sample scenarios.
 
-**Most useful prompt:** “Implement the Smart Escape routing engine as a pure Dijkstra function with exact, case-sensitive tie-breaking by minimum cost, exit ID, then the full node-ID sequence. Add selectable starts, node/corridor/exit hazard toggles, reset to imported initial state, bilingual failure messages, and verify the five supplied route scenarios.”
+## Most useful prompt
+
+“Implement the Smart Escape app using the official JSON schema: building, labeled nodes, uniquely identified undirected edges, and initial blocked_nodes, blocked_edges, and closed_exits, with no initial start. Validate every field and category, use edge IDs for corridor hazards, and let users select an unblocked room or junction as the start. Keep routing deterministic and verify all five supplied scenarios.”
 
 ## Project files
 
 - `index.html` — app layout and accessible controls.
 - `css/style.css` — responsive styling and SVG map styles.
 - `js/i18n.js` — English/Bengali translations and saved language choice.
-- `js/validate.js` — JSON shape and domain validation.
+- `js/validate.js` — JSON schema and domain validation.
 - `js/graph.js` — pure shortest-route calculation and deterministic tie-breaking.
-- `js/state.js` — starting location, current hazards and reset behavior.
+- `js/state.js` — starting location, current hazards, and reset behavior.
 - `js/render.js` — interactive SVG map and information panels.
-- `js/main.js` — import, routing, hazard controls and event wiring.
-- `sample/building.json` — example building.
+- `js/main.js` — import, routing, hazard controls, and event wiring.
+- `sample/building.json` — example building using the challenge schema.
+
+## License
+
+MIT.
