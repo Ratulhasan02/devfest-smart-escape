@@ -1,0 +1,27 @@
+{
+  "name": "Harbor View Community Center",
+  "nodes": [
+    { "id": "lobby", "label": "Main Lobby", "type": "room", "x": 120, "y": 180 },
+    { "id": "north-hall", "label": "North Hall", "type": "junction", "x": 330, "y": 100 },
+    { "id": "central-hall", "label": "Central Hall", "type": "junction", "x": 330, "y": 260 },
+    { "id": "library", "label": "Library", "type": "room", "x": 550, "y": 100 },
+    { "id": "kitchen", "label": "Kitchen", "type": "room", "x": 550, "y": 260 },
+    { "id": "east-exit", "label": "East Exit", "type": "exit", "x": 770, "y": 180 },
+    { "id": "west-exit", "label": "West Exit", "type": "exit", "x": 120, "y": 360 }
+  ],
+  "edges": [
+    { "from": "lobby", "to": "north-hall", "cost": 4 },
+    { "from": "lobby", "to": "central-hall", "cost": 3 },
+    { "from": "north-hall", "to": "library", "cost": 2 },
+    { "from": "central-hall", "to": "kitchen", "cost": 2 },
+    { "from": "north-hall", "to": "central-hall", "cost": 2 },
+    { "from": "library", "to": "east-exit", "cost": 3 },
+    { "from": "kitchen", "to": "east-exit", "cost": 2 },
+    { "from": "lobby", "to": "west-exit", "cost": 5 }
+  ],
+  "initial_state": {
+    "start": "lobby",
+    "blocked_nodes": ["kitchen"],
+    "closed_exits": ["west-exit"]
+  }
+}

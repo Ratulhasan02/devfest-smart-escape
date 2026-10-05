@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#102a43">
+    <title data-i18n="appTitle">Building Evacuation Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./css/style.css">
+    <script type="module" src="./js/main.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="./" data-i18n-aria="brandLabel">
+          <span class="brand-mark" aria-hidden="true">E</span>
+          <span data-i18n="appTitle">Building Evacuation Map</span>
+        </a>
+        <div class="topbar-actions">
+          <div class="language-switch" role="group" data-i18n-aria="languageGroup">
+            <button class="language-button is-active" type="button" data-language="en" aria-pressed="true">EN</button>
+            <button class="language-button" type="button" data-language="bn" aria-pressed="false">বাংলা</button>
+          </div>
+          <a class="help-link" href="./README.md" data-i18n="helpLink">Data format</a>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <section class="intro">
+          <div>
+            <p class="eyebrow" data-i18n="eyebrow">BUILDING SAFETY</p>
+            <h1 data-i18n="pageHeading">Know your way out.</h1>
+            <p class="intro-copy" data-i18n="pageDescription">Import a building map to see rooms, connections and the initial safety conditions.</p>
+          </div>
+          <div class="import-actions">
+            <input id="building-file" class="visually-hidden" type="file" accept=".json,application/json" data-i18n-aria="importButtonLabel">
+            <button id="import-button" class="button button-primary" type="button">
+              <span aria-hidden="true">↑</span>
+              <span data-i18n="importButton">Import building JSON</span>
+            </button>
+            <button id="sample-button" class="button button-secondary" type="button" data-i18n="sampleButton">Load sample</button>
+          </div>
+        </section>
+
+        <div class="workspace">
+          <section class="map-card" aria-labelledby="map-heading">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow" data-i18n="mapEyebrow">FLOOR PLAN</p>
+                <h2 id="map-heading" data-i18n="mapHeading">Building map</h2>
+              </div>
+              <span id="map-count" class="map-count" hidden></span>
+            </div>
+            <div id="map-container" class="map-container" aria-live="polite">
+              <div class="empty-state">
+                <span class="empty-icon" aria-hidden="true">⌖</span>
+                <p data-i18n="emptyMap">Load a sample or import a building JSON file to view its map.</p>
+              </div>
+            </div>
+            <div class="legend" data-i18n-aria="mapLegend">
+              <span class="legend-item"><span class="legend-symbol legend-room"></span><span data-i18n="room">Room</span></span>
+              <span class="legend-item"><span class="legend-symbol legend-junction"></span><span data-i18n="junction">Junction</span></span>
+              <span class="legend-item"><span class="legend-symbol legend-exit"></span><span data-i18n="exit">Exit</span></span>
+              <span class="legend-item"><span class="legend-symbol legend-blocked"></span><span data-i18n="blocked">Blocked</span></span>
+              <span class="legend-item"><span class="legend-symbol legend-closed"></span><span data-i18n="closed">Closed</span></span>
+            </div>
+          </section>
+
+          <aside class="side-panel" data-i18n-aria="buildingInfo">
+            <section class="info-card">
+              <p class="eyebrow" data-i18n="detailsEyebrow">OVERVIEW</p>
+              <h2 data-i18n="detailsHeading">Building details</h2>
+              <div id="building-details" class="details-content">
+                <p class="muted-copy" data-i18n="detailsEmpty">Building information will appear here after a valid file is loaded.</p>
+              </div>
+            </section>
+
+            <section id="message-card" class="message-card" aria-live="polite">
+              <div class="message-heading">
+                <span class="message-icon" aria-hidden="true">!</span>
+                <h2 id="message-title" data-i18n="messagesHeading">Messages</h2>
+              </div>
+              <p id="message-empty" class="muted-copy" data-i18n="messagesEmpty">No errors to show.</p>
+              <ul id="message-list" class="message-list" hidden></ul>
+            </section>
+
+            <section class="info-card initial-card">
+              <p class="eyebrow" data-i18n="initialEyebrow">STARTING CONDITIONS</p>
+              <h2 data-i18n="initialHeading">Initial state</h2>
+              <div id="initial-state" class="details-content">
+                <p class="muted-copy" data-i18n="initialEmpty">Load a valid building file to see its starting conditions.</p>
+              </div>
+            </section>
+          </aside>
+        </div>
+        <footer class="page-footer"><span data-i18n="footerText">A clear map is a safer first step.</span></footer>
+      </main>
+    </div>
+  </body>
+</html>
