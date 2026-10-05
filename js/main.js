@@ -1,4 +1,5 @@
-import { getLanguage, initializeLanguage, setLanguage, translate } from "./i18n.js";
+import { findRoute } from "./graph.js";
+import { initializeLanguage, setLanguage, translate } from "./i18n.js";
 import { validateBuilding } from "./validate.js";
 import {
   clearMapCount,
@@ -8,20 +9,34 @@ import {
   renderMap,
   renderMapCount,
   renderMessages,
+  renderRouteResult,
 } from "./render.js";
+import {
+  createBuildingState,
+  getHazards,
+  resetBuildingState,
+  setStart,
+  toggleEdgeHazard,
+  toggleNodeHazard,
+} from "./state.js";
 
 const fileInput = document.querySelector("#building-file");
 const importButton = document.querySelector("#import-button");
 const sampleButton = document.querySelector("#sample-button");
+const startModeButton = document.querySelector("#start-mode");
+const hazardModeButton = document.querySelector("#hazard-mode");
+const resetButton = document.querySelector("#reset-button");
 const mapContainer = document.querySelector("#map-container");
 const mapCount = document.querySelector("#map-count");
 const detailsContainer = document.querySelector("#building-details");
 const initialStateContainer = document.querySelector("#initial-state");
+const routeContainer = document.querySelector("#route-result");
 const messageList = document.querySelector("#message-list");
 const messageEmpty = document.querySelector("#message-empty");
 const messageCard = document.querySelector("#message-card");
 
-let activeBuilding = null;
+let activeState = null;
+let activeRoute = null;
 let activeErrors = [];
 
 function displayErrors(errors) {
@@ -31,10 +46,23 @@ function displayErrors(errors) {
   ));
 }
 
+function updateModeButtons() {
+  for (const [button, mode] of [[startModeButton, "start"], [hazardModeButton, "hazard"]]) {
+    const isActive = activeState?.mode === mode;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+    button.disabled = !activeState;
+  }
+  resetButton.disabled = !activeState;
+}
+
 function clearBuilding() {
-  activeBuilding = null;
+  activeState = null;
+  activeRoute = null;
   renderEmptyMap(mapContainer);
   clearMapCount(mapCount);
+  renderRouteResult(routeContainer, null);
+  updateModeButtons();
 
   detailsContainer.replaceChildren();
   const detailsEmpty = document.createElement("p");
@@ -51,6 +79,43 @@ function clearBuilding() {
   initialStateContainer.append(initialEmpty);
 }
 
+function calculateRoute() {
+  return findRoute(activeState.building, activeState.start, getHazards(activeState));
+}
+
+function onNodeClick(nodeId) {
+  if (!activeState) return;
+  if (activeState.mode === "start") {
+    setStart(activeState, nodeId);
+  } else {
+    toggleNodeHazard(activeState, nodeId);
+  }
+  refreshBuilding();
+}
+
+function onEdgeClick(firstId, secondId) {
+  if (!activeState || activeState.mode !== "hazard") return;
+  toggleEdgeHazard(activeState, firstId, secondId);
+  refreshBuilding();
+}
+
+function refreshBuilding() {
+  activeRoute = calculateRoute();
+  renderMap(
+    mapContainer,
+    activeState.building,
+    activeState,
+    activeRoute,
+    onNodeClick,
+    onEdgeClick,
+  );
+  renderMapCount(mapCount, activeState.building);
+  renderBuildingDetails(detailsContainer, activeState.building);
+  renderInitialState(initialStateContainer, activeState.building, activeState);
+  renderRouteResult(routeContainer, activeRoute);
+  updateModeButtons();
+}
+
 function loadBuilding(building) {
   const errors = validateBuilding(building);
   if (errors.length > 0) {
@@ -59,11 +124,8 @@ function loadBuilding(building) {
     return false;
   }
 
-  activeBuilding = building;
-  renderMap(mapContainer, building);
-  renderMapCount(mapCount, building);
-  renderBuildingDetails(detailsContainer, building);
-  renderInitialState(initialStateContainer, building);
+  activeState = createBuildingState(building);
+  refreshBuilding();
   displayErrors([]);
   return true;
 }
@@ -87,9 +149,7 @@ async function loadSample() {
 }
 
 function loadFile(file) {
-  if (!file) {
-    return;
-  }
+  if (!file) return;
 
   const reader = new FileReader();
   reader.addEventListener("load", () => {
@@ -121,22 +181,39 @@ fileInput.addEventListener("change", () => {
   fileInput.value = "";
 });
 sampleButton.addEventListener("click", loadSample);
+startModeButton.addEventListener("click", () => {
+  if (activeState) {
+    activeState.mode = "start";
+    updateModeButtons();
+    refreshBuilding();
+  }
+});
+hazardModeButton.addEventListener("click", () => {
+  if (activeState) {
+    activeState.mode = "hazard";
+    updateModeButtons();
+    refreshBuilding();
+  }
+});
+resetButton.addEventListener("click", () => {
+  if (activeState) {
+    resetBuildingState(activeState);
+    refreshBuilding();
+  }
+});
 
 document.querySelectorAll("[data-language]").forEach((button) => {
   button.addEventListener("click", () => setLanguage(button.dataset.language));
 });
 
 window.addEventListener("languagechange", () => {
-  if (activeBuilding) {
-    renderMap(mapContainer, activeBuilding);
-    renderMapCount(mapCount, activeBuilding);
-    renderBuildingDetails(detailsContainer, activeBuilding);
-    renderInitialState(initialStateContainer, activeBuilding);
-  }
-  if (!activeBuilding && activeErrors.length > 0) {
-    renderEmptyMap(mapContainer, "emptyMap");
+  if (activeState) {
+    refreshBuilding();
+  } else {
+    renderRouteResult(routeContainer, null);
   }
   displayErrors(activeErrors);
 });
 
 initializeLanguage();
+updateModeButtons();

@@ -1,4 +1,5 @@
 import { translate } from "./i18n.js";
+import { edgeKey } from "./graph.js";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const NODE_RADIUS = 17;
@@ -41,29 +42,61 @@ export function renderEmptyMap(container, messageKey = "emptyMap") {
   container.append(state);
 }
 
-export function renderMap(container, building) {
+export function renderMap(container, building, state, route, onNodeClick, onEdgeClick) {
   const svg = createSvgElement("svg", {
     viewBox: getViewBox(building.nodes),
     role: "img",
     "aria-label": translate("accessibilityMap", { name: building.name }),
     preserveAspectRatio: "xMidYMid meet",
   });
-  const initialState = building.initial_state;
-  const blockedNodes = new Set(initialState.blocked_nodes);
-  const closedExits = new Set(initialState.closed_exits);
+  svg.classList.add("map-svg");
+  const blockedEdges = state.blockedEdges;
+  const routeEdges = new Set(
+    route.status === "ok"
+      ? route.path.slice(1).map((id, index) => edgeKey(route.path[index], id))
+      : [],
+  );
 
   const edgesGroup = createSvgElement("g", { "aria-label": translate("edgeCount") });
   for (const edge of building.edges) {
     const from = building.nodes.find((node) => node.id === edge.from);
     const to = building.nodes.find((node) => node.id === edge.to);
+    const key = edgeKey(edge.from, edge.to);
+    const isBlocked = blockedEdges.has(key);
+    const isRouteEdge = routeEdges.has(key) && !isBlocked;
     const edgeGroup = createSvgElement("g", {
       role: "img",
+      class: `edge-group${isBlocked ? " is-blocked" : ""}${isRouteEdge ? " is-route" : ""}`,
       "aria-label": translate("accessibilityEdge", {
         from: nodeLabel(from),
         to: nodeLabel(to),
         cost: edge.cost,
       }),
     });
+    if (state.mode === "hazard") {
+      edgeGroup.setAttribute("role", "button");
+      edgeGroup.setAttribute("tabindex", "0");
+      edgeGroup.setAttribute("aria-pressed", String(isBlocked));
+      edgeGroup.setAttribute("aria-label", `${translate("accessibilityEdge", {
+        from: nodeLabel(from),
+        to: nodeLabel(to),
+        cost: edge.cost,
+      })}, ${isBlocked ? translate("hazardBlocked") : translate("hazardOpen")}`);
+      edgeGroup.addEventListener("click", () => onEdgeClick(edge.from, edge.to));
+      edgeGroup.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onEdgeClick(edge.from, edge.to);
+        }
+      });
+    }
+    edgeGroup.append(createSvgElement("line", {
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      class: "edge-hit-area",
+    }));
     edgeGroup.append(createSvgElement("line", {
       x1: from.x,
       y1: from.y,
@@ -81,11 +114,13 @@ export function renderMap(container, building) {
       height: 20,
       rx: 7,
       class: "edge-cost-bg",
+      "pointer-events": "none",
     }));
     addSvgText(edgeGroup, translate("accessibilityEdgeCost", { cost: edge.cost }), {
       x: middleX,
       y: middleY,
       class: "edge-cost",
+      "pointer-events": "none",
     });
     edgesGroup.append(edgeGroup);
   }
@@ -93,8 +128,9 @@ export function renderMap(container, building) {
 
   const nodesGroup = createSvgElement("g");
   for (const node of building.nodes) {
-    const isBlocked = blockedNodes.has(node.id);
-    const isClosed = closedExits.has(node.id);
+    const isBlocked = state.blockedNodes.has(node.id);
+    const isClosed = state.closedExits.has(node.id);
+    const isSelectedStart = node.id === state.start;
     const stateSuffix = isBlocked
       ? translate("accessibilityBlockedSuffix")
       : isClosed
@@ -102,12 +138,38 @@ export function renderMap(container, building) {
         : "";
     const nodeGroup = createSvgElement("g", {
       role: "img",
+      class: `node-group${isSelectedStart ? " is-start" : ""}${isBlocked ? " is-blocked" : ""}${isClosed ? " is-closed" : ""}`,
       "aria-label": translate("accessibilityNode", {
         label: nodeLabel(node),
         type: nodeTypeLabel(node.type),
         state: stateSuffix,
       }),
     });
+    const canSelectStart = node.type !== "exit" && !isBlocked;
+    const hazardClickable = state.mode === "hazard";
+    if ((state.mode === "start" && canSelectStart) || hazardClickable) {
+      nodeGroup.setAttribute("role", "button");
+      nodeGroup.setAttribute("tabindex", "0");
+      nodeGroup.setAttribute(
+        "aria-pressed",
+        String(state.mode === "start" ? isSelectedStart : isBlocked || isClosed),
+      );
+      nodeGroup.addEventListener("click", () => onNodeClick(node.id));
+      nodeGroup.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onNodeClick(node.id);
+        }
+      });
+    }
+    if (isSelectedStart) {
+      nodeGroup.append(createSvgElement("circle", {
+        cx: node.x,
+        cy: node.y,
+        r: NODE_RADIUS + 6,
+        class: "node-start-ring",
+      }));
+    }
     const shapeClass = isBlocked
       ? "node-blocked"
       : isClosed
@@ -115,7 +177,13 @@ export function renderMap(container, building) {
         : `node-${node.type}`;
     nodeGroup.append(createNodeShape(node, shapeClass));
 
-    if (node.id === initialState.start) {
+    if (isBlocked) {
+      nodeGroup.append(createSvgElement("path", {
+        d: `M ${node.x - 6} ${node.y - 6} L ${node.x + 6} ${node.y + 6} M ${node.x + 6} ${node.y - 6} L ${node.x - 6} ${node.y + 6}`,
+        class: "node-state-mark",
+      }));
+    }
+    if (isSelectedStart) {
       nodeGroup.append(createSvgElement("circle", {
         cx: node.x,
         cy: node.y,
@@ -126,8 +194,8 @@ export function renderMap(container, building) {
     }
     if (isClosed) {
       nodeGroup.append(createSvgElement("path", {
-        d: `M ${node.x - 5} ${node.y - 5} L ${node.x + 5} ${node.y + 5} M ${node.x + 5} ${node.y - 5} L ${node.x - 5} ${node.y + 5}`,
-        class: "node-state-mark",
+        d: `M ${node.x - 8} ${node.y} L ${node.x + 8} ${node.y}`,
+        class: "node-state-mark node-closed-mark",
       }));
     }
 
@@ -199,9 +267,15 @@ export function renderBuildingDetails(container, building) {
   addDetailRow(container, translate("edgeCount"), `${building.edges.length} ${translate("edgesUnit")}`);
 }
 
-export function renderInitialState(container, building) {
+export function renderInitialState(container, building, state = null) {
   container.replaceChildren();
-  const initialState = building.initial_state;
+  const initialState = state
+    ? {
+      start: state.start,
+      blocked_nodes: [...state.blockedNodes],
+      closed_exits: [...state.closedExits],
+    }
+    : building.initial_state;
   const nodeById = new Map(building.nodes.map((node) => [node.id, node]));
   const formatIds = (ids) => ids.length
     ? ids.map((id) => nodeLabel(nodeById.get(id))).join(", ")
@@ -223,7 +297,58 @@ export function renderInitialState(container, building) {
     item.append(labelElement, valueElement);
     list.append(item);
   }
+
   container.append(list);
+}
+
+export function renderRouteResult(container, route) {
+  container.replaceChildren();
+  if (!route) {
+    const empty = document.createElement("p");
+    empty.className = "muted-copy";
+    empty.dataset.i18n = "routeEmpty";
+    empty.textContent = translate("routeEmpty");
+    container.append(empty);
+    return;
+  }
+
+  const statusKey = route.status === "no_route"
+    ? "routeNoRoute"
+    : route.status === "start_blocked"
+      ? "routeStartBlocked"
+      : null;
+  if (statusKey) {
+    const failure = document.createElement("p");
+    failure.className = "route-failure";
+    failure.dataset.i18n = statusKey;
+    failure.textContent = translate(statusKey);
+    container.append(failure);
+    return;
+  }
+
+  const path = document.createElement("ol");
+  path.className = "route-path";
+  path.setAttribute("aria-label", translate("routeTransitionLabel"));
+  for (const [index, id] of route.path.entries()) {
+    if (index > 0) {
+      const separator = document.createElement("li");
+      separator.className = "route-arrow";
+      separator.setAttribute("aria-hidden", "true");
+      separator.textContent = "→";
+      path.append(separator);
+    }
+    const item = document.createElement("li");
+    item.className = "route-node";
+    item.textContent = id;
+    path.append(item);
+  }
+  container.append(path);
+
+  const summary = document.createElement("div");
+  summary.className = "route-summary";
+  addDetailRow(summary, translate("routeExit"), route.exit);
+  addDetailRow(summary, translate("routeCost"), String(route.cost));
+  container.append(summary);
 }
 
 export function renderMessages(list, emptyMessage, card, errors, translateError) {

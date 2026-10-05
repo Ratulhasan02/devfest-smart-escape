@@ -1,27 +1,27 @@
 {
-  "name": "Harbor View Community Center",
+  "name": "Smart Escape Test Building",
   "nodes": [
-    { "id": "lobby", "label": "Main Lobby", "type": "room", "x": 120, "y": 180 },
-    { "id": "north-hall", "label": "North Hall", "type": "junction", "x": 330, "y": 100 },
-    { "id": "central-hall", "label": "Central Hall", "type": "junction", "x": 330, "y": 260 },
-    { "id": "library", "label": "Library", "type": "room", "x": 550, "y": 100 },
-    { "id": "kitchen", "label": "Kitchen", "type": "room", "x": 550, "y": 260 },
-    { "id": "east-exit", "label": "East Exit", "type": "exit", "x": 770, "y": 180 },
-    { "id": "west-exit", "label": "West Exit", "type": "exit", "x": 120, "y": 360 }
+    { "id": "R1", "label": "Room 1", "type": "room", "x": 110, "y": 100 },
+    { "id": "R2", "label": "Room 2", "type": "room", "x": 110, "y": 300 },
+    { "id": "C1", "label": "Corridor 1", "type": "junction", "x": 300, "y": 100 },
+    { "id": "C2", "label": "Corridor 2", "type": "junction", "x": 500, "y": 100 },
+    { "id": "C3", "label": "Corridor 3", "type": "junction", "x": 300, "y": 300 },
+    { "id": "C4", "label": "Corridor 4", "type": "junction", "x": 500, "y": 300 },
+    { "id": "E1", "label": "Exit 1", "type": "exit", "x": 700, "y": 100 },
+    { "id": "E2", "label": "Exit 2", "type": "exit", "x": 700, "y": 300 }
   ],
   "edges": [
-    { "from": "lobby", "to": "north-hall", "cost": 4 },
-    { "from": "lobby", "to": "central-hall", "cost": 3 },
-    { "from": "north-hall", "to": "library", "cost": 2 },
-    { "from": "central-hall", "to": "kitchen", "cost": 2 },
-    { "from": "north-hall", "to": "central-hall", "cost": 2 },
-    { "from": "library", "to": "east-exit", "cost": 3 },
-    { "from": "kitchen", "to": "east-exit", "cost": 2 },
-    { "from": "lobby", "to": "west-exit", "cost": 5 }
+    { "from": "R1", "to": "C1", "cost": 2 },
+    { "from": "C1", "to": "C2", "cost": 2 },
+    { "from": "C2", "to": "E1", "cost": 3 },
+    { "from": "C1", "to": "C3", "cost": 4 },
+    { "from": "R2", "to": "C3", "cost": 2 },
+    { "from": "C3", "to": "C4", "cost": 3 },
+    { "from": "C4", "to": "E2", "cost": 2 }
   ],
   "initial_state": {
-    "start": "lobby",
-    "blocked_nodes": ["kitchen"],
-    "closed_exits": ["west-exit"]
+    "start": "R1",
+    "blocked_nodes": [],
+    "closed_exits": []
   }
 }

@@ -53,6 +53,13 @@
               </div>
               <span id="map-count" class="map-count" hidden></span>
             </div>
+            <div class="map-toolbar">
+              <div class="mode-switch" role="group" data-i18n-aria="interactionMode">
+                <button id="start-mode" class="mode-button is-active" type="button" aria-pressed="true" data-i18n="selectStart">Select start</button>
+                <button id="hazard-mode" class="mode-button" type="button" aria-pressed="false" data-i18n="toggleHazard">Toggle hazard</button>
+              </div>
+              <button id="reset-button" class="button button-reset" type="button" disabled data-i18n="resetButton">Reset</button>
+            </div>
             <div id="map-container" class="map-container" aria-live="polite">
               <div class="empty-state">
                 <span class="empty-icon" aria-hidden="true">⌖</span>
@@ -65,6 +72,7 @@
               <span class="legend-item"><span class="legend-symbol legend-exit"></span><span data-i18n="exit">Exit</span></span>
               <span class="legend-item"><span class="legend-symbol legend-blocked"></span><span data-i18n="blocked">Blocked</span></span>
               <span class="legend-item"><span class="legend-symbol legend-closed"></span><span data-i18n="closed">Closed</span></span>
+              <span class="legend-item"><span class="legend-symbol legend-blocked-edge"></span><span data-i18n="blockedCorridor">Blocked corridor</span></span>
             </div>
           </section>
 
@@ -74,6 +82,14 @@
               <h2 data-i18n="detailsHeading">Building details</h2>
               <div id="building-details" class="details-content">
                 <p class="muted-copy" data-i18n="detailsEmpty">Building information will appear here after a valid file is loaded.</p>
+              </div>
+            </section>
+
+            <section class="info-card route-card">
+              <p class="eyebrow" data-i18n="routeEyebrow">ROUTE FINDER</p>
+              <h2 data-i18n="routeHeading">Safest available route</h2>
+              <div id="route-result" class="route-result" aria-live="polite">
+                <p class="muted-copy" data-i18n="routeEmpty">Load a valid building to find a route.</p>
               </div>
             </section>
 
