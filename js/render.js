@@ -45,7 +45,7 @@ export function renderEmptyMap(container, messageKey = "emptyMap") {
 export function renderMap(container, building, state, route, onNodeClick, onEdgeClick) {
   const svg = createSvgElement("svg", {
     viewBox: getViewBox(building.nodes),
-    role: "img",
+    role: "group",
     "aria-label": translate("accessibilityMap", { name: building.name }),
     preserveAspectRatio: "xMidYMid meet",
   });
